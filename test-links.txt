@@ -1,0 +1,12 @@
+Please paste your list of test URLs below:
+
+https://jsoup.org
+https://wikipedia.org
+https://amazon.com
+https://example.com
+https://github.com
+https://nasa.gov
+https://mozilla.org
+https://medium.com
+https://nytimes.com
+https://anshitsingh.com

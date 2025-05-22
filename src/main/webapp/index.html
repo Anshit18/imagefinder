@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImageFinder - Web Crawler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --white: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 1.5rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin: 0.5rem 0 1.5rem;
+        }
+
+        /* Search Section */
+        .search-card {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button:disabled {
+            background-color: var(--gray);
+            cursor: not-allowed;
+        }
+
+        /* Examples Section */
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .example-tag {
+            background-color: var(--primary-light);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .example-tag:hover {
+            background-color: var(--primary);
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .loading {
+            background-color: #f1f5f9;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            border-left: 4px solid var(--danger);
+        }
+
+        .spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results Section */
+        .results-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .count {
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .layout-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .layout-btn {
+            background-color: var(--white);
+            color: var(--dark);
+            border: 1px solid var(--gray-light);
+            border-radius: var(--radius);
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .layout-btn.active {
+            background-color: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .layout-btn svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: block;
+        }
+
+        /* Image Grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .image-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .image-card {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .image-card.list-view {
+            display: flex;
+            height: 100px;
+        }
+
+        .image-container {
+            height: 180px;
+            background-color: #f1f5f9;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-card.list-view .image-container {
+            width: 150px;
+            min-width: 150px;
+            height: 100px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .image-card:hover .image-container img {
+            transform: scale(1.05);
+        }
+
+        .image-info {
+            padding: 0.75rem;
+        }
+
+        .image-card.list-view .image-info {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .image-url {
+            font-size: 0.875rem;
+            color: var(--gray);
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+        }
+
+        .image-card.list-view .image-url {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .image-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+
+        .image-meta span {
+            color: var(--gray);
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .image-actions button {
+            background-color: var(--white);
+            color: var(--dark);
+            border: 1px solid var(--gray-light);
+            border-radius: var(--radius);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .image-actions button:hover {
+            background-color: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .image-card.list-view .image-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        /* No Results State */
+        .no-results {
+            text-align: center;
+            padding: 3rem 1rem;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .no-results h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .no-results p {
+            color: var(--gray);
+            max-width: 500px;
+            margin: 0 auto 1rem;
+        }
+
+        .reasons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .reason {
+            background-color: #f1f5f9;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+        }
+
+        .reason-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 0.75rem;
+            color: var(--primary);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.open .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--gray);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 1rem;
+        }
+
+        .modal-image {
+            width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            margin-bottom: 1rem;
+        }
+
+        .image-details {
+            border-top: 1px solid var(--gray-light);
+            padding-top: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-label {
+            width: 100px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .detail-value {
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            padding: 0.5rem 1rem;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 3rem;
+            padding: 2rem 0;
+            background-color: var(--white);
+            border-top: 1px solid var(--gray-light);
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .image-card.list-view {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .image-card.list-view .image-container {
+                width: 100%;
+                height: 180px;
+            }
+
+            .image-card.list-view .image-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .image-card.list-view .image-actions {
+                margin-left: 0;
+                margin-top: 0.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <div class="container">
+        <h1>ImageFinder</h1>
+        <p>Enter a URL to find and explore images from any website.</p>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Search -->
+    <div class="search-card">
+        <div class="input-group">
+            <input type="text" id="urlInput" name="url" placeholder="Enter a website URL (e.g., example.com)" />
+            <button id="submitBtn">Find Images</button>
+        </div>
+        <p>Try some examples:</p>
+        <div class="examples">
+            <span class="example-tag" data-url="wikipedia.org">Wikipedia</span>
+            <span class="example-tag" data-url="github.com">GitHub</span>
+            <span class="example-tag" data-url="nasa.gov">NASA</span>
+            <span class="example-tag" data-url="example.com">Example.com</span>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="loadingStatus" class="status loading">
+        <div class="spinner"></div>
+        <p>Searching for images... This may take a moment.</p>
+    </div>
+
+    <div id="errorStatus" class="status error">
+        <p id="errorMessage"></p>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsSection" style="display: none;">
+        <div class="results-summary">
+            <div id="count" class="count">0 images found</div>
+            <div class="layout-controls">
+                <button class="layout-btn active" id="gridViewBtn" title="Grid View">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                </button>
+                <button class="layout-btn" id="listViewBtn" title="List View">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="imageGrid" class="image-grid"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Image Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalImage" class="modal-image" src="" alt="Image preview">
+                <div class="image-details">
+                    <div class="detail-row">
+                        <div class="detail-label">URL:</div>
+                        <div class="detail-value" id="modalUrl"></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Filename:</div>
+                        <div class="detail-value" id="modalFilename"></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Type:</div>
+                        <div class="detail-value" id="modalType"></div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="openBtn" class="secondary-btn">Open in New Tab</button>
+                        <button id="downloadBtn" class="primary-btn">Download</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p>ImageFinder - Eulerity Hackathon Challenge © 2025</p>
+    </div>
+</footer>
+
+<script>
+    // DOM elements
+    const urlInput = document.getElementById('urlInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const exampleTags = document.querySelectorAll('.example-tag');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const errorStatus = document.getElementById('errorStatus');
+    const errorMessage = document.getElementById('errorMessage');
+    const resultsSection = document.getElementById('resultsSection');
+    const count = document.getElementById('count');
+    const imageGrid = document.getElementById('imageGrid');
+    const gridViewBtn = document.getElementById('gridViewBtn');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalUrl = document.getElementById('modalUrl');
+    const modalFilename = document.getElementById('modalFilename');
+    const modalType = document.getElementById('modalType');
+    const modalClose = document.querySelector('.modal-close');
+    const openBtn = document.getElementById('openBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // Initialize UI state
+    resetDisplay();
+
+    // Event listeners
+    submitBtn.addEventListener('click', findImages);
+    urlInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            findImages();
+        }
+    });
+
+    // Example tags click handlers
+    exampleTags.forEach(tag => {
+        tag.addEventListener('click', function() {
+            urlInput.value = this.dataset.url;
+            findImages();
+        });
+    });
+
+    // View toggle
+    gridViewBtn.addEventListener('click', function() {
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        imageGrid.classList.remove('list-view');
+
+        // Update image cards
+        document.querySelectorAll('.image-card').forEach(card => {
+            card.classList.remove('list-view');
+        });
+    });
+
+    listViewBtn.addEventListener('click', function() {
+        gridViewBtn.classList.remove('active');
+        listViewBtn.classList.add('active');
+        imageGrid.classList.add('list-view');
+
+        // Update image cards
+        document.querySelectorAll('.image-card').forEach(card => {
+            card.classList.add('list-view');
+        });
+    });
+
+    // Modal
+    modalClose.addEventListener('click', closeModal);
+    imageModal.addEventListener('click', function(e) {
+        if (e.target === imageModal) {
+            closeModal();
+        }
+    });
+
+    openBtn.addEventListener('click', function() {
+        window.open(modalImage.src, '_blank');
+    });
+
+    downloadBtn.addEventListener('click', function() {
+        const a = document.createElement('a');
+        a.href = modalImage.src;
+        a.download = getFileName(modalImage.src);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
+    // Functions
+    function findImages() {
+        // Get URL value
+        const url = urlInput.value.trim();
+
+        console.log("Searching for images at URL:", url);
+
+        // Validate URL
+        if (!url) {
+            showError('Please enter a URL');
+            return;
+        }
+
+        // Reset and show loading
+        resetDisplay();
+        loadingStatus.style.display = 'flex';
+        submitBtn.disabled = true;
+
+        // Make AJAX request
+        console.log("Sending request to /main");
+        fetch(`/main?url=${encodeURIComponent(url)}`, {
+            method: 'POST'
+        })
+        .then(response => {
+            console.log("Received response:", response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Received data:", data);
+            displayImages(data);
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            showError(`Error: ${error.message}`);
+        })
+        .finally(() => {
+            loadingStatus.style.display = 'none';
+            submitBtn.disabled = false;
+        });
+    }
+
+    function displayImages(images) {
+        // Update count
+        count.textContent = `${images.length} image${images.length !== 1 ? 's' : ''} found`;
+
+        // Clear previous images
+        imageGrid.innerHTML = '';
+
+        // Show results section
+        resultsSection.style.display = 'block';
+
+        // Display images or "no images" message
+        if (images.length === 0) {
+            imageGrid.innerHTML = `
+                <div class="no-results">
+                    <h3>No images found</h3>
+                    <p>We couldn't find any images on this website.</p>
+                    <div class="reasons">
+                        <div class="reason">
+                            <svg class="reason-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span>The website loads images using JavaScript</span>
+                        </div>
+                        <div class="reason">
+                            <svg class="reason-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <span>The website has restricted access to its content</span>
+                        </div>
+                        <div class="reason">
+                            <svg class="reason-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span>The URL might be incorrect or the site is unavailable</span>
+                        </div>
+                    </div>
+                    <p>Try a different website or check if the URL is correct.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Determine if grid or list view is active
+        const isListView = listViewBtn.classList.contains('active');
+
+        images.forEach(imageUrl => {
+            // Create image card
+            const imageCard = document.createElement('div');
+            imageCard.className = 'image-card';
+            if (isListView) imageCard.classList.add('list-view');
+
+            // Create image container
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+
+            // Create image element
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = 'Found image';
+            img.loading = 'lazy'; // Lazy loading for better performance
+            img.onerror = function() {
+                // Replace broken image with placeholder
+                this.onerror = null;
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjOTk5Ij5JbWFnZSBub3QgYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg==';
+            };
+
+            // Create info container
+            const imageInfo = document.createElement('div');
+            imageInfo.className = 'image-info';
+
+            // Create URL text
+            const urlDiv = document.createElement('div');
+            urlDiv.className = 'image-url';
+            urlDiv.textContent = getFileName(imageUrl);
+
+            // Create meta info
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'image-meta';
+
+            // Create type span
+            const typeSpan = document.createElement('span');
+            typeSpan.textContent = getImageType(imageUrl);
+
+            // Create actions
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'image-actions';
+
+            // Create view button
+            const viewBtn = document.createElement('button');
+            viewBtn.textContent = 'View';
+            viewBtn.addEventListener('click', () => openModal(imageUrl));
+
+            // Add elements to the DOM
+            actionsDiv.appendChild(viewBtn);
+            metaDiv.appendChild(typeSpan);
+            metaDiv.appendChild(actionsDiv);
+
+            imageInfo.appendChild(urlDiv);
+            imageInfo.appendChild(metaDiv);
+
+            imageContainer.appendChild(img);
+            imageCard.appendChild(imageContainer);
+            imageCard.appendChild(imageInfo);
+
+            // Add click handler to open modal
+            imageContainer.addEventListener('click', () => openModal(imageUrl));
+
+            imageGrid.appendChild(imageCard);
+        });
+    }
+
+    function openModal(imageUrl) {
+        modalImage.src = imageUrl;
+        modalUrl.textContent = imageUrl;
+        modalFilename.textContent = getFileName(imageUrl);
+        modalType.textContent = getImageType(imageUrl);
+        imageModal.classList.add('open');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+
+    function closeModal() {
+        imageModal.classList.remove('open');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    // Show error message
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorStatus.style.display = 'block';
+    }
+
+    // Reset display
+    function resetDisplay() {
+        loadingStatus.style.display = 'none';
+        errorStatus.style.display = 'none';
+        resultsSection.style.display = 'none';
+    }
+
+    // Helper to get filename from URL
+    function getFileName(url) {
+        try {
+            if (!url) return "Unknown";
+            const parts = url.split('/');
+            const filename = parts[parts.length - 1];
+            return filename.split('#')[0].split('?')[0] || url;
+        } catch (e) {
+            console.error("Error parsing filename:", e);
+            return url || "Unknown";
+        }
+    }
+
+    // Helper to get image type from URL
+    function getImageType(url) {
+        if (!url) return "Unknown";
+
+        try {
+            const extension = url.split('.').pop().toLowerCase().split(/[#?]/)[0];
+
+            switch (extension) {
+                case 'jpg':
+                case 'jpeg':
+                    return 'JPEG Image';
+                case 'png':
+                    return 'PNG Image';
+                case 'gif':
+                    return 'GIF Image';
+                case 'webp':
+                    return 'WebP Image';
+                case 'svg':
+                    return 'SVG Vector Image';
+                case 'ico':
+                    return 'Icon';
+                case 'bmp':
+                    return 'Bitmap Image';
+                default:
+                    return extension.toUpperCase() + ' Image';
+            }
+        } catch (e) {
+            return "Unknown Type";
+        }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // ESC key closes modal
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+
+        // Enter key submits when input is focused
+        if (e.key === 'Enter' && document.activeElement === urlInput) {
+            findImages();
+        }
+    });
+</script>
+</body>
+</html>
